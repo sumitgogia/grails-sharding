@@ -15,13 +15,11 @@ class CurrentShard {
 
     private static final ThreadLocal _shardIndex
     private static final ThreadLocal _autoCommit
-    private static final ThreadLocal _indexDataSource
     private static HashMap<String, ConfigObject> _dataSourceLookup
 
     static {
         _shardIndex = new ThreadLocal();
         _autoCommit = new ThreadLocal();
-        _indexDataSource = new ThreadLocal();
         _dataSourceLookup = new HashMap<String,ConfigObject>()
     }
 
@@ -69,28 +67,6 @@ class CurrentShard {
 
     static void setDataSourceLookup(HashMap<String, ConfigObject> dataSourceLookup) {
         _dataSourceLookup = dataSourceLookup
-    }
-
-    static String getIndexDatabaseURL() {
-        String dataSourceName = getIndexDataSourceName()
-        return(_dataSourceLookup.get(dataSourceName).getProperty("url"))
-    }
-
-    static public String getIndexDataSourceName() {
-        if (_indexDataSource.get() == null) {
-            def grailsApplication = new com.jeffrick.grails.plugins.sharding.Shard().domainClass.grailsApplication
-            String indexDataSourceName = grailsApplication.domainClasses.find {
-                it.clazz.isAnnotationPresent(Shard)
-            }?.clazz?.getAnnotation(Shard)?.indexDataSourceName()
-
-            if (!indexDataSourceName) {
-                throw new Exception("Error no domain class registered as a Shard lookup class!")
-            }
-
-            _indexDataSource.set(indexDataSourceName)
-        }
-
-        return (_indexDataSource.get())
     }
 
 }

@@ -59,6 +59,10 @@ class ShardingGrailsPlugin {
 
     def doWithDynamicMethods = { ctx ->
 
+        Shards.with {
+            (indexDataSourceName, indexDataSourceConfig) = getIndexDataSourceInfo(application)
+        }
+
         // Find the domain class the owning application has defined as
         // the "Index" domain class.  This domain class is used to store
         // the list of objects and the shard they live in
@@ -97,6 +101,24 @@ class ShardingGrailsPlugin {
                     }
                 }
         }
+    }
+
+    private List getIndexDataSourceInfo(GrailsApplication grailsApplication) {
+        String indexDataSourceName = grailsApplication.domainClasses.find {
+            it.clazz.isAnnotationPresent(ShardAnnotation)
+        }?.clazz?.getAnnotation(ShardAnnotation)?.indexDataSourceName()
+
+        if (!indexDataSourceName) {
+            throw new Exception("Error no domain class registered as a Shard lookup class!")
+        }
+
+        ConfigObject indexDataSourceConfig = grailsApplication.config[indexDataSourceName]
+
+        if (!indexDataSourceConfig) {
+            throw new Exception("Error! No datasource defined for name $indexDataSourceName")
+        }
+
+        return [indexDataSourceName, indexDataSourceConfig]
     }
 
     private loadShards(GrailsApplication app) {
