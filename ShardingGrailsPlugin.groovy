@@ -59,54 +59,55 @@ class ShardingGrailsPlugin {
 
     def doWithDynamicMethods = { ctx ->
 
-        Shards.with {
-            (indexDataSourceName, indexDataSourceConfig) = getIndexDataSourceInfo(application)
-        }
-
         // Find the domain class the owning application has defined as
         // the "Index" domain class.  This domain class is used to store
         // the list of objects and the shard they live in
-        application.domainClasses.each {
-            DefaultGrailsDomainClass domainClass ->
+        Shards.with {
+            (indexDataSourceName, indexDataSourceConfig, indexDomainClass) =
+                getIndexDataSourceInfo(application)
+        }
 
-                if (domainClass.clazz.isAnnotationPresent(ShardAnnotation)) {
+        // For the index domain class add a beforeInsert event handler
+        // that will assign the next shard to the object being saved.
+        // In the future will need to be able to chain this event with existing
+        // beforeInsert event handlers
+        Shards.indexDomainClass.clazz.metaClass.beforeInsert = {->
+            ShardAnnotation prop =
+                ((DefaultGrailsDomainClass)Shards.indexDomainClass)
+                    .clazz.getAnnotation(ShardAnnotation)
 
-                    // For the index domain class add a beforeInsert event handler
-                    // that will assign the next shard to the object being saved.
-                    // In the future will need to be able to chain this event with existing beforeInsert
-                    // event handlers
-                    domainClass.metaClass.beforeInsert = {->
-                        ShardAnnotation prop = domainClass.clazz.getAnnotation(ShardAnnotation)
-                        ShardService shardService = ctx.shardService
+            ShardService shardService = ctx.shardService
 
-                        // Before we insert we need to figure out the shard to assign ourselves to
-                        def shardObject = shardService.getNextShard()
-                        shardObject.refresh()
+            // Before we insert we need to figure out the shard to assign
+            // ourselves to
+            def shardObject = shardService.getNextShard()
+            shardObject.refresh()
 
-                        // Set the shard on the object
-                        String fieldName = prop.fieldName()
-                        if (!delegate."$fieldName") {
-                            delegate."$fieldName" = shardObject.shardName
+            // Set the shard on the object
+            String fieldName = prop.fieldName()
+            if (!delegate."$fieldName") {
+                delegate."$fieldName" = shardObject.shardName
 
-                            // Increment the usage of the shard assigned
-                            Shard.withNewSession {
-                                shardObject.refresh()
-                                shardObject.incrementUsage()
-                            }
-
-                            shardObject.refresh()
-                        }
-
-                        return true
-                    }
+                // Increment the usage of the shard assigned
+                Shard.withNewSession {
+                    shardObject.refresh()
+                    shardObject.incrementUsage()
                 }
+
+                shardObject.refresh()
+            }
+
+            return true
         }
     }
 
     private List getIndexDataSourceInfo(GrailsApplication grailsApplication) {
-        String indexDataSourceName = grailsApplication.domainClasses.find {
+        DefaultGrailsDomainClass indexDomainClass = grailsApplication.domainClasses.find {
             it.clazz.isAnnotationPresent(ShardAnnotation)
-        }?.clazz?.getAnnotation(ShardAnnotation)?.indexDataSourceName()
+        }
+        String indexDataSourceName = indexDomainClass?.clazz
+                                        ?.getAnnotation(ShardAnnotation)
+                                        ?.indexDataSourceName()
 
         if (!indexDataSourceName) {
             throw new Exception("Error no domain class registered as a Shard lookup class!")
@@ -118,7 +119,7 @@ class ShardingGrailsPlugin {
             throw new Exception("Error! No datasource defined for name $indexDataSourceName")
         }
 
-        return [indexDataSourceName, indexDataSourceConfig]
+        return [indexDataSourceName, indexDataSourceConfig, indexDomainClass]
     }
 
     private loadShards(GrailsApplication app) {
