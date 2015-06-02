@@ -10,7 +10,7 @@ import com.jeffrick.grails.plugins.services.ShardService
 import com.jeffrick.grails.plugins.sharding.Shard
 
 class ShardingGrailsPlugin {
-    def version = "1.0"
+    def version = "1.1-cz1"
     def grailsVersion = "2.0.0 > *"
     def loadAfter = ['dataSource', 'domainClass', 'hibernate']
     def author = "Jeff Rick"
