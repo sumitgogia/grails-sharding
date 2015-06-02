@@ -28,13 +28,7 @@ class CurrentShard {
     static ShardConfig get() {
         Integer currentId = getIndex()
         ShardConfig current = null;
-        Shards.getShards().each {
-            if (it.id == currentId) {
-                current = it
-            }
-        }
-
-        return (current);
+        return Shards.getShards().find { it.id == currentId }
     }
 
     /** *
