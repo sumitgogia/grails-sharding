@@ -28,26 +28,24 @@ class ShardingGrailsPlugin {
     def doWithSpring = {
 
         List<ShardConfig> shards = []
-        Map allDataSourceConfigs = [:]
         Map shardDataSources = [:]
         shardDataSources.put(0, ref("dataSource"))
         int shardId = 1
 
         application.config.each { String key, Object value ->
             if (key.startsWith('dataSource_')) {
-                allDataSourceConfigs[key] = value
                 if (value.getProperty("shard")) {
                     shardDataSources[shardId] = ref(key)
                     shards << new ShardConfig(
                         id: shardId,
-                        name: key.replace("dataSource_", "")
+                        name: key.replace("dataSource_", ""),
+                        dataSourceConfig: value
                     )
                     shardId++
                 }
             }
         }
 
-        CurrentShard.setDataSourceLookup(allDataSourceConfigs)
         Shards.shards = shards
 
         // Create the dataSource bean that has the Shard specific SwitchableDataSource implementation

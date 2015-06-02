@@ -15,12 +15,10 @@ class CurrentShard {
 
     private static final ThreadLocal _shardIndex
     private static final ThreadLocal _autoCommit
-    private static HashMap<String, ConfigObject> _dataSourceLookup
 
     static {
         _shardIndex = new ThreadLocal();
         _autoCommit = new ThreadLocal();
-        _dataSourceLookup = new HashMap<String,ConfigObject>()
     }
 
     static ShardConfig get() {
@@ -63,10 +61,6 @@ class CurrentShard {
      */
     static void setShard(ShardConfig shard) {
         _shardIndex.set(shard.id)
-    }
-
-    static void setDataSourceLookup(HashMap<String, ConfigObject> dataSourceLookup) {
-        _dataSourceLookup = dataSourceLookup
     }
 
 }
