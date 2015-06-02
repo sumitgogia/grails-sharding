@@ -27,19 +27,28 @@ class ShardingGrailsPlugin {
 
     def doWithSpring = {
 
-        def shardDataSources = [:]
-
+        List<ShardConfig> shards = []
+        Map allDataSourceConfigs = [:]
+        Map shardDataSources = [:]
         shardDataSources.put(0, ref("dataSource"))
         int shardId = 1
-        for (Map.Entry<String, Object> item in application.config.entrySet()) {
-            if (item.key.startsWith('dataSource_')) {
-                if (item.value.getProperty("shard")) {
-                    shardDataSources.put(shardId++, ref(item.key))
+
+        application.config.each { String key, Object value ->
+            if (key.startsWith('dataSource_')) {
+                allDataSourceConfigs[key] = value
+                if (value.getProperty("shard")) {
+                    shardDataSources[shardId] = ref(key)
+                    shards << new ShardConfig(
+                        id: shardId,
+                        name: key.replace("dataSource_", "")
+                    )
+                    shardId++
                 }
             }
         }
-        
-        Shards.shards = loadShardConfig(application)
+
+        CurrentShard.setDataSourceLookup(allDataSourceConfigs)
+        Shards.shards = shards
 
         // Create the dataSource bean that has the Shard specific SwitchableDataSource implementation
         // we also set the targetDataSoures map to the one we built above
@@ -108,31 +117,4 @@ class ShardingGrailsPlugin {
         }
     }
 
-    private loadShardConfig(GrailsApplication app) {
-        try {
-            def shards = []
-            def dataSourceLookup = [:]
-            int shardId = 1
-		app.config.each { key, value ->
-                if (key.startsWith('dataSource_')) {
-                    if (value.getProperty("shard")) {
-                        ShardConfig shardConfig = new ShardConfig()
-                        shardConfig.id = shardId++
-                        shardConfig.name = key.replace("dataSource_", "")
-                        shards.add(shardConfig)
-
-                    }
-                    dataSourceLookup.put(key, value)
-                }
-            }
-
-            CurrentShard.setDataSourceLookup(dataSourceLookup)
-            return shards
-        }
-        catch (e) {
-            println e.message
-            e.printStackTrace()
-            return []
-        }
-    }
 }
