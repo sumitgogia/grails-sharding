@@ -46,11 +46,8 @@ class ShardService {
     }
 
     def change(String name) {
-        Shards.shards.each {
-            if (it.name == name) {
-                change it
-            }
-        }
+        ShardConfig toShard = Shards.shards.find { it.name == name }
+        change toShard
     }
 
     def change(ShardConfig shard) {
