@@ -40,6 +40,7 @@ class Shard {
 
   static constraints = {
     lastUpdated(nullable: true)
+    shardName unique: true
   }
 
   def incrementUsage() {
