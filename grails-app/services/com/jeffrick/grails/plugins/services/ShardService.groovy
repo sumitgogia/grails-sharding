@@ -55,12 +55,10 @@ class ShardService {
 
     def change(ShardConfig shard) {
         if (shard) {
-            if (shard.name != CurrentShard.get().name) {
+            ShardConfig currentShard = CurrentShard.get()
+            if (shard.name != currentShard.name) {
                 //test connection
-                def oldEnv = CurrentShard.get().name
-
                 CurrentShard.setShard shard
-
                 try {
                     CurrentShard.setAutoCommit sessionFactory.getCurrentSession().jdbcContext.hibernateTransaction == null
                 } catch (HibernateException he) {
@@ -78,7 +76,7 @@ class ShardService {
                     }
                     return true
                 } catch (e) {
-                    CurrentShard.setShard(Shards.getShards().find { oldEnv == it.name })
+                    CurrentShard.setShard(currentShard)
                     log.error "Unable to connect to database" + e.message
                     throw new Exception("Unable to connect to database + " + e.message)
                 }
