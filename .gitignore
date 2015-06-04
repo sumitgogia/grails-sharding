@@ -5,3 +5,6 @@
 /plugin.xml
 .settings
 web-app
+.classpath
+.project
+/target-eclipse
