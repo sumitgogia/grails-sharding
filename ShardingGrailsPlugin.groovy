@@ -50,7 +50,7 @@ class ShardingGrailsPlugin {
 
         // Create the dataSource bean that has the Shard specific SwitchableDataSource implementation
         // we also set the targetDataSoures map to the one we built above
-        dataSource(ShardingDS) {
+        "dataSource_shard"(ShardingDS) { 
             targetDataSources = shardDataSources
         }
     }
