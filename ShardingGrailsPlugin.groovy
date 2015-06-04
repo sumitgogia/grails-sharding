@@ -29,7 +29,6 @@ class ShardingGrailsPlugin {
 
         List<ShardConfig> shards = []
         Map shardDataSources = [:]
-        shardDataSources.put(0, ref("dataSource"))
         int shardId = 1
 
         application.config.each { String key, Object value ->
@@ -48,9 +47,14 @@ class ShardingGrailsPlugin {
 
         Shards.shards = shards
 
-        // Create the dataSource bean that has the Shard specific SwitchableDataSource implementation
-        // we also set the targetDataSoures map to the one we built above
-        "dataSource_shard"(ShardingDS) { 
+        // Create the dataSource bean that has the Shard specific
+        // SwitchableDataSource implementation. Give it all the
+        // available/configured shards (i.e. datasources with shard = true)
+        // or the default datasource if no shards are configured
+        if (!shardDataSources) {
+            shardDataSources[shardId] = ref('dataSource')
+        }
+        "dataSource_shard"(ShardingDS) {
             targetDataSources = shardDataSources
         }
     }
