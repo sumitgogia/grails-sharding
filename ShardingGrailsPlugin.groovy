@@ -128,7 +128,7 @@ class ShardingGrailsPlugin {
         try {
             def shards = [:]
             int shardId = 1
-		app.config.each { key, value ->
+            app.config.each { key, value ->
                 if (key.startsWith('dataSource_')) {
                     shards.put(shardId++, ref(key))
                 }
