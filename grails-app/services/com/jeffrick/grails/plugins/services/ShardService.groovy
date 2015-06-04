@@ -92,4 +92,20 @@ class ShardService {
         }
         return (shards[0])
     }
+
+    void withShard(String shardName, Closure c) {
+        ShardConfig shard = Shards.shards.find { it.name == shardName }
+        withShard(shard, c)
+    }
+
+    void withShard(ShardConfig shard, Closure c) {
+        ShardConfig currentShard = CurrentShard.get()
+        try {
+            change(shard)
+            c()
+        } finally {
+            change(currentShard)
+        }
+        return
+    }
 }
