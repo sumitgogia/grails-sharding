@@ -17,41 +17,42 @@ class ShardEntityInterceptor extends EmptyInterceptor implements ApplicationCont
     ApplicationContext applicationContext
 
     void afterTransactionBegin(Transaction transaction) {
-        String trnsDatabase = transaction.jdbcContext.connectionManager.connection.getMetaData().getURL()
-        String indexDatabaseURL = CurrentShard.getIndexDatabaseURL()
-
-        // If the database starting a transaction isn't the index database then we need to start a transaction
-        // for the index database
-        if (!trnsDatabase.equals(indexDatabaseURL) && CurrentShard.getTransactionStatus(trnsDatabase) == null) {
-
+        // If a transaction on the index DB has not been started (by us) then
+        // start one. If a transaction on the index DB is already started, then
+        // participate in the same one. (This is ensured by PROPAGATION_REQUIRED
+        // used by DefaultTransactionDefinition
+        String indexDbUrl = Shards.getIndexDatabaseURL()
+        if (CurrentShard.getTransactionStatus(indexDbUrl)) {
             // Get the transaction manager for the index database
-            AbstractPlatformTransactionManager trnsManager = applicationContext.getBean("transactionManager_" + CurrentShard.getIndexDataSourceName().replace("dataSource_", ""))
-            trnsManager.setTransactionSynchronization AbstractPlatformTransactionManager.SYNCHRONIZATION_NEVER
-            CurrentShard.setTransactionManager(trnsManager)
+            AbstractPlatformTransactionManager txManager =
+                applicationContext.getBean("transactionManager_" +
+                                           Shards
+                                            .getIndexDataSourceName()
+                                            .replaceFirst("dataSource(_)?", ""))
 
-            // Create a new transaction and store it for later use
-            TransactionDefinition transDef = new DefaultTransactionDefinition()
+            txManager.setTransactionSynchronization(
+                AbstractPlatformTransactionManager.SYNCHRONIZATION_NEVER)
+
+            CurrentShard.setTransactionManager(txManager)
+
+            // Create a new (or participate in existing) transaction and
+            // store it for later use
+            TransactionDefinition txDef = new DefaultTransactionDefinition()
+            TransactionStatus tx = txManager.getTransaction(txDef)
 
             // Set the transaction status
-            CurrentShard.setTransactionStatus(trnsDatabase, trnsManager.getTransaction(transDef))
+            CurrentShard.setTransactionStatus(indexDbUrl, tx)
         }
     }
 
     void afterTransactionCompletion(Transaction transaction) {
         // Handle the completion side of the transaction
-        // if the transaction was committed then we need to commit the index
-        // transaction otherwise we should rollback
-        if (transaction?.wasCommitted()) {
-            for (TransactionStatus trnsStatus : CurrentShard.getTransactionStatus()) {
-                if (!trnsStatus?.completed) {
-                    CurrentShard.getTransactionManager()?.commit(trnsStatus)
-                }
-            }
-        } else {
-            for (TransactionStatus trnsStatus : CurrentShard.getTransactionStatus()) {
-                if (!trnsStatus?.completed) {
-                    CurrentShard.getTransactionManager()?.rollback(trnsStatus)
-                }
+        // If the transaction was committed then we need to commit the
+        // transaction on index Db, otherwise we rollback
+        String action = transaction?.wasCommitted() ? "commit" : "rollback"
+        CurrentShard.getTransactionStatus().each { TransactionStatus tx ->
+            if (!tx?.completed) {
+                CurrentShard.getTransactionManager()?."$action"(tx)
             }
         }
 
