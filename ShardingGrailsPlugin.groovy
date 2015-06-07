@@ -32,12 +32,12 @@ class ShardingGrailsPlugin {
         int shardId = 1
 
         application.config.each { String key, Object value ->
-            if (key.startsWith('dataSource_')) {
+            if (key.startsWith('dataSource')) {
                 if (value.getProperty("shard")) {
                     shardDataSources[shardId] = ref(key)
                     shards << new ShardConfig(
                         id: shardId,
-                        name: key.replace("dataSource_", ""),
+                        name: key.replaceFirst("dataSource(_)?", "") ?: "DEFAULT",
                         dataSourceConfig: value
                     )
                     shardId++
