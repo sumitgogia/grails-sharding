@@ -124,22 +124,4 @@ class ShardingGrailsPlugin {
         return [indexDataSourceName, indexDataSourceConfig, indexDomainClass]
     }
 
-    private loadShards(GrailsApplication app) {
-        try {
-            def shards = [:]
-            int shardId = 1
-            app.config.each { key, value ->
-                if (key.startsWith('dataSource_')) {
-                    shards.put(shardId++, ref(key))
-                }
-            }
-            return shards
-        }
-        catch (e) {
-            println e.message
-            e.printStackTrace()
-            return [:]
-        }
-    }
-
 }
