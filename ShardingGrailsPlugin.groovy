@@ -3,7 +3,6 @@ import org.codehaus.groovy.grails.commons.GrailsApplication
 
 import com.jeffrick.grails.plugin.sharding.CurrentShard
 import com.jeffrick.grails.plugin.sharding.ShardConfig
-import com.jeffrick.grails.plugin.sharding.ShardEntityInterceptor
 import com.jeffrick.grails.plugin.sharding.ShardingDS
 import com.jeffrick.grails.plugin.sharding.Shards
 import com.jeffrick.grails.plugin.sharding.annotation.Shard as ShardAnnotation
@@ -47,11 +46,6 @@ class ShardingGrailsPlugin {
         dataSource(ShardingDS) {
             targetDataSources = shardDataSources
         }
-
-        // Define an entityInterceptor that will be triggered when transactions
-        // start and end.  This basically coordinates the starting and stopping of transactions
-        // between the active shard and the index database
-        entityInterceptor(ShardEntityInterceptor)
     }
 
     def doWithDynamicMethods = { ctx ->
